@@ -1,0 +1,16 @@
+{
+  "deps": [
+    {
+      "locator": "github.com/ponylang/peg.git",
+      "version": "0.1.1"
+    }
+  ],
+  "info": {
+    "description": "",
+    "homepage": "",
+    "license": "",
+    "documentation_url": "",
+    "version": "",
+    "name": ""
+  }
+}
