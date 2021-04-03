@@ -1,25 +1,10 @@
 use "files"
-use "peg"
 
 
 class RoundtripFormatter
   """
   A formatter that doesn't format at all.
   """
-
-  fun format(ast: ASTChild): String val =>
-    recover
-      let result: String ref = String
-      match ast
-      | let a: AST =>
-        for child in a.children.values() do
-          result.append(format(child))
-        end
-      | let token: Token =>
-        result.append(token.source.content, token.offset, token.length)
-      end
-      result
-    end
 
 
 actor Main
@@ -40,8 +25,26 @@ actor Main
         return
       end
 
-    try
-      let result = PonyParser.parse(FilePath(auth, filename)?, env.out)?
-      env.out.print("Got result!")
-      env.out.print(RoundtripFormatter.format(result))
-    end
+   let parser_factory =
+     try
+       PonyParserFactory(env.out)?
+     else
+       env.err.print("[FATAL] Could not create parser factory. That's an internal bug.")
+       return
+     end
+
+   let source =
+     try
+       Source.from_path(FilePath(auth, filename)?)?
+     else
+       env.err.print("[FATAL] Could not read source file")
+       return
+     end
+
+   try
+     let tree = parser_factory(source).parse()?
+     env.out.print(tree.dump())
+     env.out.print("\n\n")
+     env.out.print(NoneFormatter.format(tree))
+   end
+
