@@ -3,11 +3,32 @@ use ".."
 
 primitive LexerTests is TestList
   fun tag tests(test: PonyTest) =>
+    test(BinarySourceTest)
     test(EmptySourceTest)
+    test(HexTest)
+    test(IntTest)
     test(MultiLineStringTest)
+    test(RealTest)
     test(SingleLineCommentTest)
     test(StringTest)
     test(SymbolTest)
+
+
+class iso BinarySourceTest is UnitTest
+  fun name(): String  => "lexer/binary"
+
+  fun apply(h: TestHelper) =>
+    test_literal(h, "0b10100")
+    test_literal(h, "0B10111")
+
+  fun test_literal(h: TestHelper, source: String) =>
+    let lexer = Lexer(Source.from_string(source))
+
+    let first_token = lexer.next()
+    TokenAssert.is_abstract(h, first_token, "int", 1, 1)
+    TokenAssert.has_text(h, first_token, source)
+
+    TokenAssert.is_eof(h, lexer.next(), 1, source.size() + 1)
 
 
 class iso EmptySourceTest is UnitTest
@@ -16,6 +37,43 @@ class iso EmptySourceTest is UnitTest
   fun apply(h: TestHelper) =>
     let lexer =  Lexer(Source.from_string(""))
     TokenAssert.is_eof(h, lexer.next(), 1, 1)
+
+
+class iso HexTest is UnitTest
+  fun name(): String => "lexer/hex"
+
+  fun apply(h: TestHelper) =>
+    test_literal(h, "0x42")
+    test_literal(h, "0X42")
+
+  fun test_literal(h: TestHelper, source: String) =>
+    let lexer = Lexer(Source.from_string(source))
+
+    let first_token = lexer.next()
+    TokenAssert.is_abstract(h, first_token, "int", 1, 1)
+    TokenAssert.has_text(h, first_token, source)
+
+    TokenAssert.is_eof(h, lexer.next(), 1, source.size() + 1)
+
+
+class iso IntTest is UnitTest
+  fun name(): String => "lexer/int"
+
+  fun apply(h: TestHelper) =>
+    test_literal(h, "0")
+    test_literal(h, "1")
+    test_literal(h, "123")
+    test_literal(h, "1_234")
+
+  fun test_literal(h: TestHelper, source: String) =>
+    let lexer = Lexer(Source.from_string(source))
+
+    let first_token = lexer.next()
+    TokenAssert.is_abstract(h, first_token, "int", 1, 1)
+    TokenAssert.has_text(h, first_token, source)
+
+    TokenAssert.is_eof(h, lexer.next(), 1, source.size() + 1)
+
 
 
  class iso SingleLineCommentTest is UnitTest
@@ -46,6 +104,22 @@ class iso MultiLineStringTest is UnitTest
 
     TokenAssert.is_eof(h, lexer.next(), 3, 4)
 
+
+class iso RealTest is UnitTest
+  fun name(): String => "lexer/real"
+
+  fun apply(h: TestHelper)=>
+    test_literal(h, "1.0")
+    test_literal(h, "12.345")
+
+  fun test_literal(h: TestHelper, source: String) =>
+    let lexer = Lexer(Source.from_string(source))
+
+    let first_token = lexer.next()
+    TokenAssert.is_abstract(h, first_token, "float", 1, 1)
+    TokenAssert.has_text(h, first_token, source)
+
+    TokenAssert.is_eof(h, lexer.next(), 1, source.size() + 1)
 
 class iso StringTest is UnitTest
   fun name(): String => "lexer/string"

@@ -431,13 +431,139 @@ class ref Lexer
       end
     end
 
+  fun ref integer(base: U8, end_on_e: Bool): (String | None) =>
+    var result: String ref = String
+    var previous_underscore = false
+
+    while not is_eof() do
+      let ch = look()
+
+      if ch == '_' then
+        if previous_underscore then
+          return None
+        end
+
+        previous_underscore = true
+        consume_chars(1)
+        result.append([ch])
+        continue
+      end
+
+      if end_on_e and ((ch == 'e') or (ch == 'E')) then
+        break
+      end
+
+      var digit: U8 = 0
+      if (ch >= '0') and (ch <= '9') then
+        digit = ch - '0'
+      elseif (ch >= 'a') and (ch <= 'z') then
+        digit = ch - ('a' + 10)
+      elseif (ch >= 'A') and (ch <= 'Z') then
+        digit = ch - ('A' + 10)
+      else
+        break
+      end
+
+      if digit > base then
+        return None
+      end
+
+      previous_underscore = false
+      consume_chars(1)
+      result.append([ch])
+    end
+
+    if result.size() == 0 then
+      // No numeric character at all
+      None
+    elseif previous_underscore then
+      // Numeric literal cannot end with underscore
+      None
+    else
+      result.clone()
+    end
+
+  fun ref nondecimal_number(base: U8): Token =>
+    """
+    Processes a non-decimal number literal. The leading base specifier has
+    already been consumed.
+    """
+    match integer(base, false)
+    | let value: String =>
+      Token.abstract("int", _token_line, _token_pos, _prepending.clone(), _buffer + value)
+    | None => lex_error()
+    end
+
   fun ref number(): Token =>
     """
     Processes a number literal. The first character has been seen, but not
     consumed.
     """
-    // XXX implement me
-    lex_error()
+    if look() == '0' then
+      let ch = lookn(2)
+      if (ch == 'x') or (ch == 'X') then
+        append_chars(2)
+        return nondecimal_number(16)
+      elseif (ch == 'b') or (ch == 'B') then
+        append_chars(2)
+        return nondecimal_number(2)
+      end
+    end
+
+    // It's a decimal number
+    let value =
+      match integer(10, true)
+      | None => return lex_error()
+      | let value: String => value
+      end
+
+    if (look() == '.') or (look() == 'e') or (look() == 'E') then
+      return real(value)
+    end
+
+    Token.abstract("int", _token_line, _token_pos, _prepending.clone(), value)
+
+  fun ref real(integral: String): Token =>
+    """
+    Processes a real literal. The leading integral part has already been read.
+    The . or e has been seen, but not consumed.
+    """
+    let result: String ref = integral.clone()
+
+    var ch = look()
+    if (ch == '.') then
+      if (lookn(2) < '0') or (lookn(2) > '9') then
+        // It's an int token, followed by a dot token
+        return Token.abstract("int", _token_line, _token_pos, _prepending.clone(), integral)
+      end
+
+      consume_chars(1)
+      result.append([ch])
+
+      match integer(10, true)
+      | let value: String => result.append(value)
+      | None => return lex_error()
+      end
+    end
+
+    ch = look()
+    if (ch == 'e') or (ch == 'E') then
+      consume_chars(1)
+      result.append([ch])
+
+      ch = look()
+      if (ch == '+') or (ch == '-') then
+        consume_chars(1)
+        result.append([ch])
+      end
+
+      match integer(10, false)
+      | let value: String => result.append(value)
+      | None => return lex_error()
+      end
+    end
+
+    Token.abstract("float", _token_line, _token_pos, _prepending.clone(), result.clone())
 
   fun ref string(): Token =>
     """
