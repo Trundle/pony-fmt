@@ -17,19 +17,25 @@ primitive _Actions
     parser: PonyParser,
     state: _RuleState
   ): (_ParseResult, Bool) ? =>
+    let saved_builder = state.builder = _DefaultBuilder
     for rule_name in rules.values() do
       parser._debug("Trying rule " + rule_name)
       let rule = parser._find_rule(rule_name)?
       try
         match rule.parse(parser)?
         | let tree: SyntaxTree =>
-          return (parser._handle_found(state, tree), true)
+          let result = (parser._handle_found(state, tree), true)
+          state.builder = saved_builder
+          return result
         end
       else return (_ParseError, true)
       end
     end
+
     parser._debug("parse_rule_set: exiting with handle_not_found")
-    (parser._handle_not_found(state), false)
+    let result = (parser._handle_not_found(state), false)
+    state.builder = saved_builder
+    result
 
   fun parse_token_set(
     tokens: Array[String] val,
@@ -125,6 +131,12 @@ class val _IfElse is _RuleAction
     end
 
 
+class val _InfixBuild is _RuleAction
+  fun val execute(parser: PonyParser, state: _RuleState): _ParseResult =>
+    state.builder = _InfixBuilder
+    _ParseOk
+
+
 class val _Rule is _RuleAction
   let rules: Array[String] val
 
@@ -193,6 +205,9 @@ class val _While is _RuleAction
 primitive _Required
 primitive _NoDefault
 
+primitive _DefaultBuilder
+primitive _InfixBuilder
+
 class _RuleState
    """
    Processing state of one `_ParserRule`.
@@ -208,6 +223,8 @@ class _RuleState
    var tree: (SyntaxTree | None) = None
    // Whether the next action is optional
    var default: (_Required | _NoDefault | None) = _Required
+   // Which tree builder to use
+   var builder: (_DefaultBuilder | _InfixBuilder) = _DefaultBuilder
 
    new create(name': String) =>
      name = name'
@@ -329,9 +346,17 @@ class PonyParser
   fun ref _add_tree_node(state: _RuleState, node: SyntaxTree) =>
     _process_deferred_ast(state)
 
-    match state.tree
-    | None => state.tree = node
-    | let parent: SyntaxTree => parent.children.push(node)
+    match state.builder
+    | _DefaultBuilder =>
+      match state.tree
+      | None => state.tree = node
+      | let parent: SyntaxTree => parent.children.push(node)
+      end
+    | _InfixBuilder =>
+      match state.tree
+      | let child: SyntaxTree => node.children.push(child)
+      end
+      state.tree = node
     end
 
   fun ref _process_deferred_ast(state: _RuleState) =>
