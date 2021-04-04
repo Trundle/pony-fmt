@@ -172,7 +172,7 @@ class val PonyParserFactory
     _Token(consume ids)
 
   fun tag _while(ast: peg.AST): (_While | None)? =>
-    let id = (ast.children(3)? as peg.Token).string()
+    let id = _translate_token_id((ast.children(3)? as peg.Token).string())
     let body_ast = ast.children(4)? as peg.AST
     match _parse_macro(body_ast)?
     | let body: _Rule => _While(consume id, body)

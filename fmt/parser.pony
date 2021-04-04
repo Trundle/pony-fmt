@@ -198,8 +198,24 @@ class val _While is _RuleAction
     body = body'
 
   fun val execute(parser: PonyParser, state: _RuleState): _ParseResult? =>
-    parser._debug("Unimplemented: _While")
-    error
+    parser._debug("Entered _While")
+    var found = true
+    while found do
+      parser._debug("Next _While iteration")
+      state.default = _NoDefault
+      match _Actions.parse_token_set([id], parser, state)?
+      | (_ParseOk, true) =>
+        let body_result = body.execute(parser, state)?
+        if not (body_result is _ParseOk) then
+          return body_result
+        end
+      | (_ParseOk, false) => found = false
+      | (let result: _ParseResult, _) => return result
+      end
+    end
+
+    parser._debug("Exiting _While with OK")
+    _ParseOk
 
 
 primitive _Required
@@ -346,17 +362,18 @@ class PonyParser
   fun ref _add_tree_node(state: _RuleState, node: SyntaxTree) =>
     _process_deferred_ast(state)
 
-    match state.builder
-    | _DefaultBuilder =>
-      match state.tree
-      | None => state.tree = node
-      | let parent: SyntaxTree => parent.children.push(node)
+    match state.tree
+    | None => state.tree = node
+    | let existing_node: SyntaxTree =>
+      match state.builder
+      | _DefaultBuilder =>
+        existing_node.children.push(node)
+      | _InfixBuilder =>
+        _debug("Infix: existing" + existing_node.dump())
+        _debug("Infix: new node: " + node.dump())
+        node.children.push(existing_node)
+        state.tree = node
       end
-    | _InfixBuilder =>
-      match state.tree
-      | let child: SyntaxTree => node.children.push(child)
-      end
-      state.tree = node
     end
 
   fun ref _process_deferred_ast(state: _RuleState) =>
