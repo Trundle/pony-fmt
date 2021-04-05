@@ -95,7 +95,6 @@ class val PonyParserFactory
        | "AST_NODE" => _ast_node(ast)?
        | "IF" => _if(ast)?
        | "IFELSE" => _ifelse(ast)?
-       | "INFIX_BUILD" => _infix_build(ast)
        | "RULE" => _rule(ast)?
        | "SEQ" => _seq(ast)?
        | "SKIP" => _token(ast)?
@@ -138,9 +137,6 @@ class val PonyParserFactory
       | let else_body: _RuleAction => _IfElse(id, then_body, else_body)
       end
     end
-
-  fun tag _infix_build(ast: peg.AST): _InfixBuild =>
-    _InfixBuild
 
   fun tag _rule(ast: peg.AST): _Rule? =>
     let ids: Array[String] iso = recover [] end
