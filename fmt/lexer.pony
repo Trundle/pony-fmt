@@ -233,6 +233,8 @@ class ref Lexer
   var _buffer: String ref = String
   var _prepending: String ref = String
 
+  var _next_token: (Token | None) = None
+
   new create(source': Source) =>
     source = source'
     _len = source.content.size()
@@ -241,7 +243,7 @@ class ref Lexer
     """
     Returns the next token.
     """
-    var token: (Token | None) = None
+    var token: (Token | None) = _next_token = None
     _buffer = String
     _prepending = String
     while token is None do
@@ -249,7 +251,7 @@ class ref Lexer
       _token_pos = _pos
 
       if is_eof() then
-        token = Token.abstract("eof", _token_line, _token_pos, _prepending.clone())
+        token = Token.abstract("eof", _token_line, _token_pos)
         break
       end
 
@@ -262,7 +264,7 @@ class ref Lexer
       | '\t' => prepend_chars(1)
       | ' '  => prepend_chars(1)
       | '/'  => token = slash()
-      | '"'  => token = string()
+      | '"'  => token = string()  // " comment for ponylang-mode highlight bug
       else
         if Chars.isdigit(char) then
           token = number()
@@ -276,6 +278,12 @@ class ref Lexer
 
     // There is a token, so no longer a new line
     _newline = false
+
+    if _prepending.size() > 0 then
+      _next_token = token
+      // XXX wrong lineno / pos
+      return Token.concrete("whitespace", _token_line, _token_pos, _prepending.clone())
+    end
 
     match token
     | let t: Token => t
@@ -490,7 +498,7 @@ class ref Lexer
     """
     match integer(base, false)
     | let value: String =>
-      Token.abstract("int", _token_line, _token_pos, _prepending.clone(), _buffer + value)
+      Token.abstract("int", _token_line, _token_pos, _buffer + value)
     | None => lex_error()
     end
 
@@ -521,7 +529,7 @@ class ref Lexer
       return real(value)
     end
 
-    Token.abstract("int", _token_line, _token_pos, _prepending.clone(), value)
+    Token.abstract("int", _token_line, _token_pos, value)
 
   fun ref real(integral: String): Token =>
     """
@@ -534,7 +542,7 @@ class ref Lexer
     if (ch == '.') then
       if (lookn(2) < '0') or (lookn(2) > '9') then
         // It's an int token, followed by a dot token
-        return Token.abstract("int", _token_line, _token_pos, _prepending.clone(), integral)
+        return Token.abstract("int", _token_line, _token_pos, integral)
       end
 
       consume_chars(1)
@@ -563,7 +571,7 @@ class ref Lexer
       end
     end
 
-    Token.abstract("float", _token_line, _token_pos, _prepending.clone(), result.clone())
+    Token.abstract("float", _token_line, _token_pos, result.clone())
 
   fun ref string(): Token =>
     """
@@ -581,7 +589,7 @@ class ref Lexer
       end
 
       match look()
-      | '"' =>
+      | '"' => // " comment to work around ponylang-mode highlighting bug
         append_chars(1)
         return abstract_text_token("string")
       else
@@ -614,12 +622,16 @@ class ref Lexer
           continue
         end
       consume_chars(i)
-      return Token.abstract(token_id, _token_line, _token_pos, _prepending.clone(), symbol_text)
+      return Token.abstract(token_id, _token_line, _token_pos, symbol_text)
     end
 
     lex_error()
 
   fun ref triple_string(): Token =>
+    """
+    Processes a triple-quoted string. The opening quotes have been seen, but
+    not consumed.
+    """
     append_chars(3)
 
     let start_line = _line
@@ -662,10 +674,10 @@ class ref Lexer
   fun is_eof(): Bool => _len == 0
 
   fun abstract_text_token(id: String): Token =>
-    Token.abstract(id, _token_line, _token_pos, _prepending.clone(), _buffer.clone())
+    Token.abstract(id, _token_line, _token_pos, _buffer.clone())
 
   fun concrete_text_token(id: String): Token =>
-    Token.concrete(id, _token_line, _token_pos, _prepending.clone(), _buffer.clone())
+    Token.concrete(id, _token_line, _token_pos, _buffer.clone())
 
 
 primitive Chars

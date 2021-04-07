@@ -5,10 +5,13 @@ class SyntaxTree
 
   var parent: (SyntaxTree | None) = None
   embed children: Array[SyntaxTree] = children.create()
+  embed prepending_concrete_tokens: Array[Token] =
+    prepending_concrete_tokens.create()
   let token: Token
 
-  new create(token': Token) =>
+  new create(token': Token, prepending_concrete_tokens': Array[Token] val = []) =>
     token = token'
+    prepending_concrete_tokens.concat(prepending_concrete_tokens'.values())
 
   fun dump(indent: USize = 0): String =>
     let repr = " " * indent

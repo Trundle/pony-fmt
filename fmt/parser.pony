@@ -274,6 +274,9 @@ class PonyParser
   var indent: USize = 0
   let out: OutStream
 
+  // The concrete tokens before _token
+  var _concrete_tokens: Array[Token] iso = []
+  // Note: always some abstract token
   var _token: Token
 
   new create(rules: Map[String, _ParserRule] val, source: Source, out': OutStream) =>
@@ -299,10 +302,13 @@ class PonyParser
     _token
 
   fun ref _fetch_next_token() =>
+    _concrete_tokens = []
     while true do
       _token = _lexer.next()
       if _token.kind is Abstract then
         break
+      else
+        _concrete_tokens.push(_token)
       end
     end
 
@@ -334,7 +340,7 @@ class PonyParser
     Add a syntax tree node for the specified token, which may be deferred.
     """
     if (not state.matched) and (state.tree is None) and
-       (state.deferred_id is None)
+       (state.deferred_id is None) and (_concrete_tokens.size() == 0)
     then
       // The first tree node, defer its creation
       state.deferred_id = token_id
@@ -347,21 +353,28 @@ class PonyParser
 
     match state.tree
     | None => state.tree = node
-    | let parent: SyntaxTree => parent.children.push(node)
+    | let parent: SyntaxTree =>
+      if node.token.id == "flatten" then
+        parent.children.concat(node.children.values())
+      else
+        parent.children.push(node)
+      end
     end
 
   fun ref _process_deferred_ast(state: _RuleState) =>
     match state.deferred_id
     | let id: String =>
       let token = Token.empty(id)
-      state.tree = SyntaxTree(token)
+      let node = SyntaxTree(token)
+      state.tree = node
       state.deferred_id = None
     end
 
   fun ref _consume_token(): SyntaxTree iso^ ? =>
     let token = _current_token()?
+    let concrete_tokens = _concrete_tokens = []
     _fetch_next_token()
-    recover SyntaxTree(token) end
+    recover SyntaxTree(token, consume concrete_tokens) end
 
   fun _debug(str: String) =>
     out.print(("  " * indent) + str)

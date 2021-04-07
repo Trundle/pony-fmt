@@ -12,6 +12,7 @@ primitive LexerTests is TestList
     test(SingleLineCommentTest)
     test(StringTest)
     test(SymbolTest)
+    test(WhitespaceTest)
 
 
 class iso BinarySourceTest is UnitTest
@@ -146,12 +147,47 @@ class iso SymbolTest is UnitTest
     TokenAssert.is_eof(h, lexer.next(), 1, 3)
 
 
+class iso WhitespaceTest is UnitTest
+  fun name(): String => "lexer/whitespace"
+
+  fun apply(h: TestHelper) =>
+    let lexer = Lexer(Source.from_string("// foobar\nprimitive Spam"))
+
+    var token: Token = lexer.next()
+    TokenAssert.is_concrete(h, token, "comment", 1, 1)
+    TokenAssert.has_text(h, token, "// foobar")
+
+    token = lexer.next()
+    TokenAssert.is_concrete(h, token, "whitespace", 2, 1)
+    TokenAssert.has_text(h, token, "\n")
+
+    token = lexer.next()
+    TokenAssert.is_abstract(h, token, "primitive", 2, 1)
+    TokenAssert.has_text(h, token, "primitive")
+
+    token = lexer.next()
+    TokenAssert.is_concrete(h, token, "whitespace", 2, 11)
+    TokenAssert.has_text(h, token, " ")
+
+    token = lexer.next()
+    TokenAssert.is_abstract(h, token, "id", 2, 11)
+    TokenAssert.has_text(h, token, "Spam")
+
+    TokenAssert.is_abstract(h, lexer.next(), "eof", 2, 15)
+
+
 primitive TokenAssert
   fun is_abstract(h: TestHelper, token: Token, id: String, lineno: USize, pos: USize) =>
     h.assert_eq[String](id, token.id)
     h.assert_eq[USize](lineno, token.lineno)
     h.assert_eq[USize](pos, token.pos)
     h.assert_true(token.kind is Abstract)
+
+  fun is_concrete(h: TestHelper, token: Token, id: String, lineno: USize, pos: USize) =>
+    h.assert_eq[String](id, token.id)
+    h.assert_eq[USize](lineno, token.lineno)
+    h.assert_eq[USize](pos, token.pos)
+    h.assert_true(token.kind is Concrete)
 
   fun is_eof(h: TestHelper, token: Token, lineno: USize, pos: USize) =>
     h.assert_eq[String]("eof", token.id)
