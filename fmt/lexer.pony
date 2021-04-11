@@ -583,16 +583,21 @@ class ref Lexer
 
     append_chars(1)
 
+    var next_escaped = false
     while true do
       if is_eof() then
         return lex_error()
       end
 
       match look()
-      | '"' => // " comment to work around ponylang-mode highlighting bug
+      | '\\' =>
+        append_chars(1)
+        next_escaped = true
+      | '"' if not next_escaped =>// " comment to work around ponylang-mode highlighting bug
         append_chars(1)
         return abstract_text_token("string")
       else
+        next_escaped = false
         append_chars(1)
       end
     end

@@ -1,12 +1,6 @@
 use "files"
 
 
-class RoundtripFormatter
-  """
-  A formatter that doesn't format at all.
-  """
-
-
 actor Main
   new create(env: Env) =>
     let auth =
@@ -45,6 +39,6 @@ actor Main
      let tree = parser_factory(source).parse()?
      env.out.print(tree.dump())
      env.out.print("\n\n")
-     env.out.print(NoneFormatter.format(tree))
+     env.out.print(StdlibFormatter.format(tree)?)
    end
 

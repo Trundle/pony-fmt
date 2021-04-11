@@ -377,5 +377,7 @@ class PonyParser
     recover SyntaxTree(token, consume concrete_tokens) end
 
   fun _debug(str: String) =>
-    out.print(("  " * indent) + str)
-    out.flush()
+    if false then
+      out.print(("  " * indent) + str)
+      out.flush()
+    end

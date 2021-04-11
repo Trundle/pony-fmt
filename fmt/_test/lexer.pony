@@ -126,13 +126,17 @@ class iso StringTest is UnitTest
   fun name(): String => "lexer/string"
 
   fun apply(h: TestHelper) =>
-    let lexer = Lexer(Source.from_string("\"Lorem Ipsum\""))
+    test_literal(h, "\"Lorem Ipsum\"")
+    test_literal(h, "\"\\\"\\\"\\\"\"")
+
+  fun test_literal(h: TestHelper, source: String) =>
+    let lexer = Lexer(Source.from_string(source))
 
     let first_token = lexer.next()
     TokenAssert.is_abstract(h, first_token, "string", 1, 1)
-    TokenAssert.has_text(h, first_token, "\"Lorem Ipsum\"")
+    TokenAssert.has_text(h, first_token, source)
 
-    TokenAssert.is_eof(h, lexer.next(), 1, 14)
+    TokenAssert.is_eof(h, lexer.next(), 1, source.size() + 1)
 
 
 class iso SymbolTest is UnitTest
