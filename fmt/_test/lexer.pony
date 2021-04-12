@@ -46,6 +46,11 @@ class iso HexTest is UnitTest
   fun apply(h: TestHelper) =>
     test_literal(h, "0x42")
     test_literal(h, "0X42")
+    test_literal(h, "0xa")
+    test_literal(h, "0Xa")
+    test_literal(h, "0XA")
+    test_literal(h, "0xA")
+    test_literal(h, "0xa123")
 
   fun test_literal(h: TestHelper, source: String) =>
     let lexer = Lexer(Source.from_string(source))

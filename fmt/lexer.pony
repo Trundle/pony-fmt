@@ -465,9 +465,9 @@ class ref Lexer
       if (ch >= '0') and (ch <= '9') then
         digit = ch - '0'
       elseif (ch >= 'a') and (ch <= 'z') then
-        digit = ch - ('a' + 10)
+        digit = (ch - 'a') + 10
       elseif (ch >= 'A') and (ch <= 'Z') then
-        digit = ch - ('A' + 10)
+        digit = (ch - 'A') + 10
       else
         break
       end
