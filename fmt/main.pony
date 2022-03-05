@@ -3,14 +3,6 @@ use "files"
 
 actor Main
   new create(env: Env) =>
-    let auth =
-      try
-        env.root as AmbientAuth
-      else
-        env.err.print("[FATAL] Could not obtain root capability :(")
-        return
-      end
-
     let filename =
       try
         env.args(1)?
@@ -29,7 +21,7 @@ actor Main
 
    let source =
      try
-       Source.from_path(FilePath(auth, filename)?)?
+       Source.from_path(FilePath(FileAuth(env.root), filename))?
      else
        env.err.print("[FATAL] Could not read source file")
        return

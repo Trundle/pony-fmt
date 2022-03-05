@@ -2,7 +2,7 @@
   "locks": [
     {
       "locator": "github.com/ponylang/peg.git",
-      "revision": ""
+      "revision": "0.1.4"
     }
   ]
 }

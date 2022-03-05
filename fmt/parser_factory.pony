@@ -184,4 +184,3 @@ class val PonyParserFactory
     let translated = id.lower()
     translated.trim_in_place(3)
     consume translated
-

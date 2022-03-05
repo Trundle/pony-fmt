@@ -447,14 +447,13 @@ primitive _ParserRules
       TOKEN(NULL, TK_LOCATION);
       DONE();
 
-    // AT (ID | STRING) typeargs (LPAREN | LPAREN_NEW) [positional] RPAREN
+    // AT (ID | STRING) (LPAREN | LPAREN_NEW) [positional] RPAREN
     // [QUESTION]
     DEF(ffi);
       PRINT_INLINE();
       TOKEN(NULL, TK_AT);
       MAP_ID(TK_AT, TK_FFICALL);
       TOKEN("ffi name", TK_ID, TK_STRING);
-      OPT RULE("return type", typeargs);
       SKIP(NULL, TK_LPAREN, TK_LPAREN_NEW);
       OPT RULE("ffi arguments", positional);
       OPT RULE("ffi arguments", named);
@@ -837,16 +836,7 @@ primitive _ParserRules
       WHILE(TK_COMMA, RULE("with expression", withelem));
       DONE();
 
-    // WITH [annotations] withexpr DO rawseq [ELSE annotatedrawseq] END
-    // =>
-    // (SEQ
-    //   (ASSIGN (LET $1 initialiser))*
-    //   (TRY_NO_CHECK
-    //     (SEQ (ASSIGN idseq $1)* body)
-    //     (SEQ (ASSIGN idseq $1)* else)
-    //     (SEQ $1.dispose()*)))
-    // The body and else clause aren't scopes since the sugar wraps them in seqs
-    // for us.
+    // WITH [annotations] withexpr DO rawseq END
     DEF(with);
       PRINT_INLINE();
       TOKEN(NULL, TK_WITH);
@@ -854,7 +844,6 @@ primitive _ParserRules
       RULE("with expression", withexpr);
       SKIP(NULL, TK_DO);
       RULE("with body", rawseq);
-      IF(TK_ELSE, RULE("else clause", annotatedrawseq));
       TERMINATE("with expression", TK_END);
       DONE();
 
@@ -1217,4 +1206,3 @@ primitive _ParserRules
         TK_EOF);
       DONE();
     """
-
