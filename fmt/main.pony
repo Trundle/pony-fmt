@@ -13,7 +13,7 @@ actor Main
 
    let parser_factory =
      try
-       PonyParserFactory(env.out)?
+       PonyParserFactory.create()?
      else
        env.err.print("[FATAL] Could not create parser factory. That's an internal bug.")
        return

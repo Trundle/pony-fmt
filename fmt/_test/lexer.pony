@@ -133,6 +133,7 @@ class iso StringTest is UnitTest
   fun apply(h: TestHelper) =>
     test_literal(h, "\"Lorem Ipsum\"")
     test_literal(h, "\"\\\"\\\"\\\"\"")
+    test_literal(h, "\"\\\\\"")
 
   fun test_literal(h: TestHelper, source: String) =>
     let lexer = Lexer(Source.from_string(source))

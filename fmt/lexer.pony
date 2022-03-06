@@ -59,6 +59,7 @@ primitive Keywords
     | "struct" => "struct"
     | "class" => "class"
     | "actor" => "actor"
+    | "object" => "object"
 
     | "as" => "as"
     | "is" => "is"
@@ -111,7 +112,7 @@ primitive Keywords
     | "xor" => "xor"
 
     | "digestof" => "digestof"
-    | "addressof" => "addressof"
+    | "addressof" => "address"
     | "__loc" => "location"
 
     | "true" => "true"
@@ -127,86 +128,89 @@ primitive Keywords
 
 
 primitive Symbols
-  fun apply(value: String box): String? =>
-    match value
-    | "..." => "ellipsis"
-    | "->" => "arrow"
-    | "=>" => "dblarrow"
+  fun apply(value: String box, newline: Bool): String? =>
+    match (value, newline)
+    | ("...", _) => "ellipsis"
+    | ("->", _) => "arrow"
+    | ("=>", _) => "dblarrow"
 
-    | "<<~" => "lshift_til"
-    | ">>~" => "rshift_til"
+    | ("<<~", _) => "lshift_tilde"
+    | (">>~", _) => "rshift_tilde"
 
-    | "==~" => "eq_tilde"
-    | "!=~" => "ne_tilde"
+    | ("==~", _) => "eq_tilde"
+    | ("!=~", _) => "ne_tilde"
 
-    | "<=~" => "le_tilde"
-    | ">=~" => "ge_tilde"
+    | ("<=~", _) => "le_tilde"
+    | (">=~", _) => "ge_tilde"
 
-    | "<~" => "lt_tilde"
-    | ">~" => "gt_tilde"
+    | ("<~", _) => "lt_tilde"
+    | (">~", _) => "gt_tilde"
 
-    | "+~" => "plus_tilde"
-    | "-~" => "minus_tilde"
-    | "*~" => "multiply_ti"
-    | "/~" => "divide_tild"
-    | "%%~" => "mod_tilde"
-    | "%~" => "rem_tilde"
+    | ("+~", _) => "plus_tilde"
+    | ("-~", _) => "minus_tilde"
+    | ("*~", _) => "multiply_tilde"
+    | ("/~", _) => "divide_tilde"
+    | ("%%~", _) => "mod_tilde"
+    | ("%~", _) => "rem_tilde"
 
-    | "<<" => "lshift"
-    | ">>" => "rshift"
+    | ("<<", _) => "lshift"
+    | (">>", _) => "rshift"
 
-    | "==" => "eq"
-    | "!=" => "ne"
+    | ("==", _) => "eq"
+    | ("!=", _) => "ne"
 
-    | "<=" => "le"
-    | ">=" => "ge"
+    | ("<=", _) => "le"
+    | (">=", _) => "ge"
 
-    | ".>" => "chain"
+    | (".>", _) => "chain"
 
-    | "<:" => "subtype"
+    | ("<:", _) => "subtype"
 
-    | "\\" => "backslash"
+    | ("\\", _) => "backslash"
 
-    | "@{" => "at_lbrace"
+    | ("@{", _) => "at_lbrace"
 
-    | "{" => "lbrace"
-    | "}" => "rbrace"
-    | "(" => "lparen"
-    | ")" => "rparen"
-    | "[" => "lsquare"
-    | "]" => "rsquare"
-    | "," => "comma"
+    | ("{", _) => "lbrace"
+    | ("}", _) => "rbrace"
+    | (")", _) => "rparen"
+    | ("]", _) => "rsquare"
+    | (",", _) => "comma"
 
-    | "." => "dot"
-    | "~" => "tilde"
-    | ":" => "colon"
-    | ";" => "semi"
-    | "=" => "assign"
+    | (".", _) => "dot"
+    | ("~", _) => "tilde"
+    | (":", _) => "colon"
+    | (";", _) => "semi"
+    | ("=", _) => "assign"
 
-    | "+" => "plus"
-    | "-" => "minus"
-    | "*" => "multiply"
-    | "/" => "divide"
-    | "%%" => "mod"
-    | "%" => "rem"
-    | "@" => "at"
+    | ("+", _) => "plus"
+    | ("-", _) => "minus"
+    | ("*", _) => "multiply"
+    | ("/", _) => "divide"
+    | ("%%", _) => "mod"
+    | ("%", _) => "rem"
+    | ("@", _) => "at"
 
-    | "<" => "lt"
-    | ">" => "gt"
+    | ("<", _) => "lt"
+    | (">", _) => "gt"
 
-    | "|" => "pipe"
-    | "&" => "isecttype"
-    | "^" => "ephemeral"
-    | "!" => "aliased"
+    | ("|", _) => "pipe"
+    | ("&", _) => "isecttype"
+    | ("^", _) => "ephemeral"
+    | ("!", _) => "aliased"
 
-    | "?" => "question"
-    | "-" => "unary_minus"
-    | "#" => "constant"
+    | ("?", _) => "question"
+    | ("-", _) => "unary_minus"
+    | ("#", _) => "constant"
 
-    | "(" => "lparen_new"
-    | "[" => "lsquare_new"
-    | "-~" => "minus_tilde"
-    | "-" => "minus_new"
+    | ("(", false) => "lparen"
+    | ("[", false) => "lsquare"
+    | ("-~", false) => "minus_tilde"
+    | ("-", false) => "minus"
+
+    | ("(", true) => "lparen_new"
+    | ("[", true) => "lsquare_new"
+    | ("-~", true) => "minus_tilde_new"
+    | ("-", true) => "minus_new"
     else error
     end
 
@@ -265,6 +269,8 @@ class ref Lexer
       | ' '  => prepend_chars(1)
       | '/'  => token = slash()
       | '"'  => token = string()  // " comment for ponylang-mode highlight bug
+      | '\'' => token = character()
+      | '#' => token = hash()
       else
         if Chars.isdigit(char) then
           token = number()
@@ -382,6 +388,51 @@ class ref Lexer
 
     concrete_text_token("comment")
 
+  fun ref character(): Token =>
+    """
+    Processes a character literal. The leading '' has been seen, but not consumed.
+    """
+    append_chars(1)
+
+    var next_escaped = false
+    var chars_consumed: USize = 0
+    while true do
+      if is_eof() then
+        return lex_error()
+      end
+
+      match look()
+      | '\'' if not next_escaped =>
+        if chars_consumed == 0 then
+          return lex_error()
+        end
+        append_chars(1)
+        break
+      | '\\' =>
+        append_chars(1)
+        chars_consumed = chars_consumed + 1
+        next_escaped = not next_escaped
+      else
+        append_chars(1)
+        chars_consumed = chars_consumed + 1
+        next_escaped = false
+      end
+    end
+
+    abstract_text_token("int")
+
+  fun ref hash(): Token =>
+    """
+    Processes a hash which has been seen, but not consumed yet.
+    """
+    append_chars(1)
+    match optional_keyword(false)
+    | let token: Token => token
+    | None =>
+       // No hash keyword found, just return the hash
+       abstract_text_token("constant")
+    end
+
   fun ref slash(): Token =>
     """
     Processes a slash which has been seen, but not consumed yet.
@@ -390,11 +441,11 @@ class ref Lexer
     | '*' => nested_comment()
     | '/' => line_comment()
     | '~' =>
-      consume_chars(1)
-      Token.abstract("divide_tilde", _token_line, _token_pos, _prepending.clone())
+      append_chars(2)
+      abstract_text_token("divide_tilde")
     else
-      consume_chars(1)
-      Token.abstract("divide", _token_line, _token_pos, _prepending.clone())
+      append_chars(1)
+      abstract_text_token("divide")
     end
 
   fun ref read_id(): USize =>
@@ -419,6 +470,15 @@ class ref Lexer
 
   fun ref keyword(allow_identifiers: Bool): Token =>
     """
+    Like optional_keyword, but results in a lexing error if no keyword is found.
+    """
+    match optional_keyword(allow_identifiers)
+    | let token: Token => token
+    | None => lex_error()
+    end
+
+  fun ref optional_keyword(allow_identifiers: Bool): (Token | None) =>
+    """
     Processes a keyword or identifier, possibly with a special prefix (eg '#').
     Any prefix must have been consumed.
     If no keword is found, an identifier token is created if `allow_identifier`
@@ -435,7 +495,7 @@ class ref Lexer
         consume_chars(len)
         abstract_text_token("id")
       else
-         lex_error()
+        None
       end
     end
 
@@ -592,7 +652,7 @@ class ref Lexer
       match look()
       | '\\' =>
         append_chars(1)
-        next_escaped = true
+        next_escaped = not next_escaped
       | '"' if not next_escaped =>// " comment to work around ponylang-mode highlighting bug
         append_chars(1)
         return abstract_text_token("string")
@@ -622,7 +682,7 @@ class ref Lexer
       let symbol_text = s.trim(0, i)
       let token_id =
         try
-          Symbols(symbol_text)?
+          Symbols(symbol_text, _newline)?
         else
           continue
         end

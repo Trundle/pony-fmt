@@ -1,4 +1,5 @@
 use "collections"
+use "debug"
 use peg = "peg"
 
 
@@ -50,10 +51,8 @@ class val PonyParserFactory
   """
 
   let _rules: Map[String, _ParserRule] val
-  // XXX remove me
-  let out: OutStream
 
-  new val create(out': OutStream)? =>
+  new val create()? =>
      let src = peg.Source.from_string(_ParserRules.rules())
      (let pos, let result) = recover _ParserRuleParser().parse(src) end
      let ast = result as peg.AST
@@ -64,13 +63,12 @@ class val PonyParserFactory
        rules(rule.name) = rule
      end
      _rules = consume rules
-     out = out'
 
   fun box apply(source: Source): PonyParser =>
     """
     Create a new `PonyParser` that will parse the given source.
     """
-    PonyParser(_rules, source, out)
+    PonyParser(_rules, source)
 
   fun tag _parse_def(ast: peg.AST): _ParserRule? =>
     let name = (ast.children(1)? as peg.Token).string()
@@ -92,6 +90,7 @@ class val PonyParserFactory
   fun tag _parse_macro(ast: peg.AST): (_RuleAction | None)? =>
      var maybe_action: (_RuleAction | None) =
        match (ast.children(1)? as peg.Token).string()
+       | "ANNOTATE" => _annotate(ast)?
        | "AST_NODE" => _ast_node(ast)?
        | "IF" => _if(ast)?
        | "IFELSE" => _ifelse(ast)?
@@ -113,6 +112,10 @@ class val PonyParserFactory
        end
      end
      maybe_action
+
+  fun tag _annotate(ast: peg.AST): (_Annotate | None)? =>
+    let id = (ast.children(3)? as peg.Token).string()
+    _Annotate(consume id)
 
   fun tag _ast_node(ast: peg.AST): _AstNode? =>
     let id = (ast.children(3)? as peg.Token).string()
@@ -161,7 +164,11 @@ class val PonyParserFactory
 
   fun tag _token(ast: peg.AST): _Token? =>
     let ids: Array[String] iso = recover [] end
-    for i in Range[USize](4, ast.children.size() - 3) do
+    for i in Range[USize](4, ast.children.size() - 2) do
+      if ast.children(i)? is _TRParen then
+        break
+      end
+
       let id = (ast.children(i)? as peg.Token).string()
       ids.push(_translate_token_id(consume id))
     end

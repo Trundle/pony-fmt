@@ -5,3 +5,4 @@ actor Main is TestList
 
   fun tag tests(test: PonyTest) =>
     LexerTests.tests(test)
+    test(RoundtripTest)

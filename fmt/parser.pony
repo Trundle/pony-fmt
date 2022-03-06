@@ -60,6 +60,21 @@ trait val _RuleAction
   fun val execute(parser: PonyParser, state: _RuleState): _ParseResult?
 
 
+class val _Annotate is _RuleAction
+  let id: String
+
+  new val create(id': String) =>
+    id = id'
+
+  fun val execute(parser: PonyParser, state: _RuleState): _ParseResult? =>
+    let rule = parser._find_rule(id)?
+    match rule.parse(parser)?
+    | let tree: SyntaxTree => parser._add_tree_node(state, tree)
+    | None => SyntaxTree(Token.empty("none"))
+    end
+    _ParseOk
+
+
 class val _Opt is _RuleAction
   let action: _RuleAction
   let default: (_NoDefault | None)
@@ -161,7 +176,6 @@ class val _Seq is _RuleAction
         parser._debug("SEQ in '" + state.name + "': parse_rule_set returned rule not found")
         matched = false
       end
-      parser.out.flush()
     end
     parser._debug("SEQ in '" + state.name + "': Returning OK")
     _ParseOk
@@ -272,19 +286,16 @@ class PonyParser
   let _lexer: Lexer
 
   var indent: USize = 0
-  let out: OutStream
 
   // The concrete tokens before _token
   var _concrete_tokens: Array[Token] iso = []
   // Note: always some abstract token
   var _token: Token
 
-  new create(rules: Map[String, _ParserRule] val, source: Source, out': OutStream) =>
+  new create(rules: Map[String, _ParserRule] val, source: Source) =>
     _rules = rules
     _lexer = Lexer(source)
     _token = Token.empty()
-    // XXX remove me
-    out = out'
     _fetch_next_token()
 
   fun ref parse(): SyntaxTree ? =>
@@ -378,6 +389,5 @@ class PonyParser
 
   fun _debug(str: String) =>
     if false then
-      out.print(("  " * indent) + str)
-      out.flush()
+      Debug(("  " * indent) + str)
     end
